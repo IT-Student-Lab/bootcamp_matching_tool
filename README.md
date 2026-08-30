@@ -1,2 +1,22 @@
-# bootcamp_matching_tool
-construsoft bootcamp 4/9/26
+# Live Matchmaker
+
+Live audience matching tool for the Construsoft Bootcamp on 4 September 2026.
+
+## Current status
+
+- Next.js App Router and TypeScript scaffold
+- M1 schema with private participant data, sanitized Realtime tables, RLS and atomic round locking
+- Strict, idempotent XLSX seed importer
+- M2 mobile form and transaction-backed `/api/submit`
+
+Database deployment and seed verification still require a local checkout and Supabase credentials.
+
+## Local setup
+
+1. Install dependencies with `npm install`.
+2. Copy `.env.example` to `.env.local` and set the required values.
+3. Apply `supabase/migrations/202608300001_initial_schema.sql` to the Supabase project.
+4. Run `npm run seed` to import `docs/Survey results Construsoft.xlsx`.
+5. Start the app with `npm run dev`.
+
+Never commit `.env*`, API keys, passwords or connection strings. See `AGENTS.md` and `docs/technical-plan.md` before making implementation decisions.
