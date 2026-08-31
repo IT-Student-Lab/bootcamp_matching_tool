@@ -7,6 +7,7 @@
 .live { background: #c4f084; color: #263713; }
 .stopped { background: #e5dfd5; color: #6e6a64; }
 .passwordLabel { display: block; font-size: 0.78rem; font-weight: 600; margin-bottom: 0.4rem; }
+.passwordLabel span { color: #6e6a64; font-weight: 400; }
 .password { background: #fff; border: 1px solid #d6cfc4; border-radius: 6px; min-height: 2.75rem; padding: 0.65rem 0.75rem; width: 100%; }
 .password:focus { outline: 2px solid #5c7a3a; outline-offset: 1px; }
 .controlRow { align-items: center; border-bottom: 1px solid #d6cfc4; border-top: 1px solid #d6cfc4; display: flex; justify-content: space-between; margin-top: 1.5rem; padding: 1.15rem 0; }

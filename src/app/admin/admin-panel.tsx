@@ -23,6 +23,8 @@ type RoundResponse = {
 type AdminMatch = { match_id: string; score: number; a_name: string; b_name: string; a_source: "seed" | "live"; b_source: "seed" | "live" };
 type ShowControl = { mode: "live" | "fallback"; score_floor: number };
 
+const PASSWORD_STORAGE_KEY = "bootcamp-admin-password";
+
 function describeResult(result: RoundResponse) {
   if (!result.ok) return "Round failed safely";
   if (result.waiting) return `Waiting for room (${result.rosterSize ?? 0})`;
@@ -43,6 +45,17 @@ export function AdminPanel() {
   const [floorInput, setFloorInput] = useState(70);
   const [testEmail, setTestEmail] = useState("");
   const inFlight = useRef(false);
+
+  useEffect(() => {
+    const remembered = localStorage.getItem(PASSWORD_STORAGE_KEY);
+    if (remembered) setPassword(remembered);
+  }, []);
+
+  function rememberPassword(value: string) {
+    setPassword(value);
+    if (value) localStorage.setItem(PASSWORD_STORAGE_KEY, value);
+    else localStorage.removeItem(PASSWORD_STORAGE_KEY);
+  }
 
   useEffect(() => {
     const supabase = getBrowserClient();
@@ -191,8 +204,8 @@ export function AdminPanel() {
         <span className={active ? styles.live : styles.stopped}>{active ? "Live" : "Stopped"}</span>
       </header>
 
-      <label className={styles.passwordLabel} htmlFor="admin-password">Admin password</label>
-      <input className={styles.password} id="admin-password" type="password" autoComplete="current-password" value={password} disabled={active} onChange={(event) => setPassword(event.target.value)} />
+      <label className={styles.passwordLabel} htmlFor="admin-password">Admin password <span>remembered on this device</span></label>
+      <input className={styles.password} id="admin-password" type="password" autoComplete="current-password" value={password} disabled={active} onChange={(event) => rememberPassword(event.target.value)} />
 
       <div className={styles.controlRow}>
         <div><strong>Matching rounds</strong><span>Every 7 seconds</span></div>

@@ -9,7 +9,8 @@ import { createServiceClient } from "@/lib/supabase/server";
 
 export const maxDuration = 300;
 const BATCH_SIZE = 100;
-const FROM_ADDRESS = "Construsoft Bootcamp <bootcamp@joda-ai.nl>";
+// Must match the domain verified in Resend; a send-only address needs no mailbox.
+const FROM_ADDRESS = "Construsoft Bootcamp <bootcamp@resend.joda-ai.nl>";
 
 type Participant = { id: string; first_name: string; country: string | null; email: string | null; good_at: string; wants_to_learn: string };
 type CandidateMatch = { id: string; participant_a: string; participant_b: string; reason: string };

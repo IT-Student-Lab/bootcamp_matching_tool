@@ -14,7 +14,7 @@ The projector laptop shows **only** `/screen`. Never open `/admin` on the beamer
 
 ## Before the talk
 
-1. Open `/admin`, type the admin password once. Every button stays disabled until you do.
+1. Open `/admin`, type the admin password once. The browser remembers it on this device, so you only do this on a laptop you trust. Every button stays disabled until it is filled in.
 2. Press **Delete live submissions**, then **Delete all matches**. This clears rehearsal and load-test data. The 15 seed answers stay.
 3. Open `/screen` on the projector laptop, press **F** for fullscreen. The cursor hides itself after three seconds.
 4. Two minutes before the segment, press **Warm up**. It should report `Warm (…ms)`. This costs nothing and avoids a cold start on the first real round.
@@ -37,7 +37,7 @@ The projector laptop shows **only** `/screen`. Never open `/admin` on the beamer
 
 1. **Finalize matches.** Takes up to a few minutes; it fills gaps for early arrivals and gives everyone exactly one match. Safe to run twice — the result is identical.
 2. Check the reported line: `Finalized: N matched, M unresolved`. A small number of unresolved people is honest, not a bug.
-3. **Send result emails.** Already-sent people are skipped, so a second press never double-sends. Mail goes out from `bootcamp@joda-ai.nl`.
+3. **Send result emails.** Already-sent people are skipped, so a second press never double-sends. Mail goes out from `bootcamp@resend.joda-ai.nl`.
 
 Before the day itself, use **Test mail → Send one test** to check a Gmail address and a Microsoft 365 address. It sends exactly one message through the real template and touches nothing in the database.
 
