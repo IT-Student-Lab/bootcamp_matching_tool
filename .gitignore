@@ -5,4 +5,11 @@ node_modules/
 coverage/
 playwright-report/
 test-results/
+.playwright-mcp/
+/m4-*.png
 *.tsbuildinfo
+
+# Source material with real participant answers and internal presentation files.
+docs/*.xlsx
+docs/*.pptx
+docs/*.docx

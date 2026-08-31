@@ -78,8 +78,8 @@ export function ParticipantForm() {
         <div className="field"><label htmlFor="country">Country</label><select id="country" name="country" required value={country} onChange={(event) => setCountry(event.target.value)}><option value="" disabled>Select</option>{COUNTRIES.map((option) => <option key={option}>{option}</option>)}<option>Other</option></select></div>
       </div>
       {country === "Other" ? <div className="field"><label htmlFor="otherCountry">Your country</label><input id="otherCountry" name="otherCountry" type="text" maxLength={80} required /></div> : null}
-      <AnswerField id="goodAt" name="goodAt" label="I'm good at —" placeholder="Turning campaign numbers into decisions" />
-      <AnswerField id="wantsToLearn" name="wantsToLearn" label="I'd like to learn —" placeholder="How to build a sales dashboard that people actually use" helper="Name the task, not just the tool. 'Using AI to draft customer replies' finds you a match — 'AI' can't." />
+      <AnswerField id="goodAt" name="goodAt" label="1. What's something you're genuinely good at? It could be a skill a way of working or something that you are very confident with using." placeholder="Turning campaign numbers into decisions" />
+      <AnswerField id="wantsToLearn" name="wantsToLearn" label="2. What’s one work-related skill, tool or topic you’d like to learn more about?" placeholder="How to build a sales dashboard that people actually use" helper="Name the task, not just the tool. 'Using AI to draft customer replies' finds you a match — 'AI' can't." />
       <div className="field"><label htmlFor="email">Email</label><input id="email" name="email" type="email" autoComplete="email" maxLength={254} required /></div>
       <div className="honeypot" aria-hidden="true"><label htmlFor="website">Website</label><input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" /></div>
       <p className="privacy-notice">Your first name, country and answers may be shown on the bootcamp screen during this session.</p>

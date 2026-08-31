@@ -8,6 +8,8 @@ Live audience matching tool for the Construsoft Bootcamp on 4 September 2026.
 - M1 schema with private participant data, sanitized Realtime tables, RLS and atomic round locking
 - Strict, idempotent XLSX seed importer
 - M2 mobile form and transaction-backed `/api/submit`
+- M3 round-based Sonnet matching and password-gated `/admin` clock
+- M4 Realtime `/screen`, ranked reveal queue, force controls and offline fallback
 
 Database deployment and seed verification still require a local checkout and Supabase credentials.
 

@@ -7,7 +7,8 @@ import { getServerEnv } from "@/lib/env";
 import { normalizePersonKey } from "@/lib/participants/person-key";
 import { createServiceClient } from "@/lib/supabase/server";
 
-const MAX_REQUESTS_PER_HOUR = 5;
+const MAX_REQUESTS_PER_IP_PER_HOUR = 500;
+const MAX_REQUESTS_PER_EMAIL_PER_HOUR = 5;
 const submissionSchema = z.object({
   firstName: z.string().trim().min(1).max(80), country: z.string().trim().min(1).max(80),
   email: z.email().max(254).transform((value) => value.trim().toLocaleLowerCase("en")),
@@ -19,6 +20,9 @@ function getClientIp(request: NextRequest) {
   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip") ?? "unknown";
 }
 function getHourlyWindow(date: Date) { const window = new Date(date); window.setUTCMinutes(0, 0, 0); return window.toISOString(); }
+function hashRateLimitKey(secret: string, namespace: "ip" | "email", value: string) {
+  return createHmac("sha256", secret).update(`${namespace}:${value}`).digest("hex");
+}
 
 export async function POST(request: NextRequest) {
   let body: unknown;
@@ -30,10 +34,18 @@ export async function POST(request: NextRequest) {
   try {
     const env = getServerEnv();
     const supabase = createServiceClient();
-    const keyHash = createHmac("sha256", env.RATE_LIMIT_SECRET).update(getClientIp(request)).digest("hex");
-    const { data: accepted, error: rateLimitError } = await supabase.rpc("consume_rate_limit", { bucket_key_hash: keyHash, bucket_started_at: getHourlyWindow(new Date()), maximum_requests: MAX_REQUESTS_PER_HOUR });
-    if (rateLimitError) throw rateLimitError;
-    if (!accepted) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    const bucketStartedAt = getHourlyWindow(new Date());
+    const limits = [
+      { key: hashRateLimitKey(env.RATE_LIMIT_SECRET, "ip", getClientIp(request)), maximum: MAX_REQUESTS_PER_IP_PER_HOUR },
+      { key: hashRateLimitKey(env.RATE_LIMIT_SECRET, "email", parsed.data.email), maximum: MAX_REQUESTS_PER_EMAIL_PER_HOUR },
+    ];
+    for (const limit of limits) {
+      const { data: accepted, error: rateLimitError } = await supabase.rpc("consume_rate_limit", {
+        bucket_key_hash: limit.key, bucket_started_at: bucketStartedAt, maximum_requests: limit.maximum,
+      });
+      if (rateLimitError) throw rateLimitError;
+      if (!accepted) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    }
     const { error } = await supabase.rpc("submit_live_participant", {
       submitted_first_name: parsed.data.firstName, submitted_country: parsed.data.country,
       submitted_email: parsed.data.email, submitted_good_at: parsed.data.goodAt,

@@ -9,11 +9,18 @@ const EXPECTED_ROWS = 15;
 const DEFAULT_FILE = path.join("docs", "Survey results Construsoft.xlsx");
 const headerAliases = {
   name: ["invitee_name", "invitee name", "name"],
-  goodAt: ["what are you genuinely good at", "good_at", "good at"],
-  wantsToLearn: ["what would you like to learn", "wants_to_learn", "wants to learn"],
+  goodAt: ["what are you genuinely good at", "1.   What's something you're genuinely good at? It could be a skill a way of working or something that you are very confident with using.", "good_at", "good at"],
+  wantsToLearn: ["what would you like to learn", "2.   What’s one work-related skill, tool or topic you’d like to learn more about?", "wants_to_learn", "wants to learn"],
 } as const;
 const seedRowSchema = z.object({ name: z.string().trim().min(1), goodAt: z.string().trim().min(1), wantsToLearn: z.string().trim().min(1) });
-function normalizeHeader(value: unknown) { return String(value ?? "").trim().toLocaleLowerCase("en").replace(/[?!.:]+$/g, ""); }
+function normalizeHeader(value: unknown) {
+  return String(value ?? "")
+    .trim()
+    .toLocaleLowerCase("en")
+    .replace(/[‘’]/g, "'")
+    .replace(/\s+/g, " ")
+    .replace(/[?!.:]+$/g, "");
+}
 function findColumn(headers: Map<string, number>, aliases: readonly string[]) {
   for (const alias of aliases) { const column = headers.get(normalizeHeader(alias)); if (column) return column; }
   throw new Error(`Missing spreadsheet column. Expected one of: ${aliases.join(", ")}`);

@@ -1,0 +1,59 @@
+.page { align-items: center; background: #141210; display: flex; min-height: 100vh; padding: 2rem; }
+.panel { background: #f9f4ee; border: 1px solid #393632; border-radius: 8px; margin: 0 auto; max-width: 48rem; padding: 2rem; width: 100%; }
+.header { align-items: flex-start; display: flex; justify-content: space-between; margin-bottom: 2rem; }
+.header h1 { font-size: 1.75rem; margin: 0.3rem 0 0; }
+.eyebrow { color: #6e6a64; font-family: "JetBrains Mono", monospace; font-size: 0.68rem; letter-spacing: 0.1em; margin: 0; text-transform: uppercase; }
+.live, .stopped { border-radius: 999px; font-family: "JetBrains Mono", monospace; font-size: 0.72rem; padding: 0.38rem 0.6rem; text-transform: uppercase; }
+.live { background: #c4f084; color: #263713; }
+.stopped { background: #e5dfd5; color: #6e6a64; }
+.passwordLabel { display: block; font-size: 0.78rem; font-weight: 600; margin-bottom: 0.4rem; }
+.password { background: #fff; border: 1px solid #d6cfc4; border-radius: 6px; min-height: 2.75rem; padding: 0.65rem 0.75rem; width: 100%; }
+.password:focus { outline: 2px solid #5c7a3a; outline-offset: 1px; }
+.controlRow { align-items: center; border-bottom: 1px solid #d6cfc4; border-top: 1px solid #d6cfc4; display: flex; justify-content: space-between; margin-top: 1.5rem; padding: 1.15rem 0; }
+.controlRow strong, .controlRow span { display: block; }
+.controlRow div > span { color: #6e6a64; font-size: 0.75rem; margin-top: 0.2rem; }
+.switch { display: block; height: 2rem; position: relative; width: 3.5rem; }
+.switch input { height: 1px; opacity: 0; position: absolute; width: 1px; }
+.switch > span { background: #c9c3ba; border-radius: 1rem; cursor: pointer; inset: 0; position: absolute; }
+.switch > span::after { background: #fff; border-radius: 50%; content: ""; height: 1.5rem; left: 0.25rem; position: absolute; top: 0.25rem; transition: transform 150ms ease; width: 1.5rem; }
+.switch input:checked + span { background: #5c7a3a; }
+.switch input:checked + span::after { transform: translateX(1.5rem); }
+.switch input:focus-visible + span { outline: 2px solid #5c7a3a; outline-offset: 2px; }
+.switch input:disabled + span { cursor: not-allowed; opacity: 0.5; }
+.demoActions { display: grid; gap: 0.55rem; grid-template-columns: 1fr 1fr; margin-top: 1rem; }
+.demoActions button { background: #e5dfd5; border: 0; border-radius: 5px; color: #141210; cursor: pointer; font-size: 0.72rem; font-weight: 600; min-height: 2.5rem; padding: 0.55rem; }
+.demoActions .seedDemo { background: #c4f084; }
+.demoActions .danger { color: #8a332b; }
+.demoActions button:disabled { cursor: not-allowed; opacity: 0.45; }
+.metrics { display: grid; gap: 1px; grid-template-columns: 1fr 1fr; margin: 1.5rem 0 0; }
+.metrics div { background: #eee8df; min-width: 0; padding: 0.85rem; }
+.metrics dt { color: #6e6a64; font-size: 0.7rem; margin-bottom: 0.35rem; }
+.metrics dd { font-family: "JetBrains Mono", monospace; font-size: 0.78rem; margin: 0; overflow-wrap: anywhere; }
+.screenControls, .queue { border-top: 1px solid #d6cfc4; margin-top: 1.5rem; padding-top: 1.25rem; }
+.sectionHeading, .queueTitle, .floorRow, .queueItem { align-items: center; display: flex; justify-content: space-between; }
+.sectionHeading span, .queueTitle span { color: #6e6a64; display: block; font-size: 0.72rem; margin-top: 0.2rem; }
+.segmented { background: #e5dfd5; border-radius: 6px; display: flex; padding: 3px; }
+.segmented button, .floorRow button, .queueItem button, .guarantee { border: 0; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: 600; min-height: 2rem; }
+.segmented button { background: transparent; color: #6e6a64; padding: 0.35rem 0.75rem; }
+.segmented .selected { background: #fff; color: #141210; }
+.floorRow { gap: 0.6rem; justify-content: flex-start; margin-top: 1rem; }
+.floorRow label { font-size: 0.78rem; font-weight: 600; margin-right: auto; }
+.floorRow input { border: 1px solid #d6cfc4; border-radius: 4px; min-height: 2rem; padding: 0.3rem 0.4rem; width: 4.5rem; }
+.floorRow button, .queueItem button { background: #141210; color: #c4f084; padding: 0.35rem 0.65rem; }
+.guarantee { background: #c4f084; color: #141210; margin-top: 1rem; padding: 0.55rem 0.8rem; width: 100%; }
+.screenControls button:disabled, .queue button:disabled { cursor: not-allowed; opacity: 0.45; }
+.queueTitle { margin-bottom: 0.65rem; }
+.queueItem { border-top: 1px solid #e5dfd5; min-height: 2.9rem; padding: 0.45rem 0; }
+.queueItem > div { min-width: 0; }
+.queueItem > div strong { display: block; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.queueItem > div span { color: #6e6a64; font-family: "JetBrains Mono", monospace; font-size: 0.62rem; text-transform: uppercase; }
+.queueItem b { font-family: "JetBrains Mono", monospace; font-size: 0.78rem; margin-left: auto; padding: 0 0.8rem; }
+.testMailRow { align-items: center; border-top: 1px solid #d6cfc4; display: flex; gap: 0.6rem; margin-top: 1.5rem; padding-top: 1.25rem; }
+.testMailRow label { font-size: 0.78rem; font-weight: 600; }
+.testMailRow input { border: 1px solid #d6cfc4; border-radius: 4px; flex: 1; min-height: 2.2rem; min-width: 0; padding: 0.3rem 0.5rem; }
+.testMailRow button { background: #141210; border: 0; border-radius: 4px; color: #c4f084; cursor: pointer; font-size: 0.75rem; font-weight: 600; min-height: 2.2rem; padding: 0.35rem 0.65rem; }
+.testMailRow button:disabled { cursor: not-allowed; opacity: 0.45; }
+.finalActions { border-top: 1px solid #d6cfc4; display: grid; gap: 0.65rem; grid-template-columns: 1fr 1fr; margin-top: 1.5rem; padding-top: 1.25rem; }
+.finalActions button { background: #141210; border: 0; border-radius: 5px; color: #c4f084; cursor: pointer; font-size: 0.78rem; font-weight: 600; min-height: 2.6rem; }
+.finalActions button:disabled { cursor: not-allowed; opacity: 0.45; }
+@media (max-width: 540px) { .page { padding: 1rem; } .panel { padding: 1.25rem; } .metrics, .demoActions, .finalActions { grid-template-columns: 1fr; } }

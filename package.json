@@ -6,9 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "loadtest": "tsx scripts/loadtest.ts",
+    "test:matching": "tsx scripts/test-matching.ts",
+    "test:assignment": "tsx scripts/test-assignment.ts",
+    "evaluate:seeds": "tsx scripts/evaluate-seeds.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.66.0",
@@ -17,10 +20,10 @@
     "@fontsource/space-grotesk": "^5.2.6",
     "@supabase/supabase-js": "^2.57.0",
     "dotenv": "^17.2.0",
-    "resend": "^6.0.0",
-    "next": "15.5.2",
+    "next": "^15.5.24",
     "react": "19.1.1",
     "react-dom": "19.1.1",
+    "resend": "^6.0.0",
     "zod": "^4.1.0"
   },
   "devDependencies": {
