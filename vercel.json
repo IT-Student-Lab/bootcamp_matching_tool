@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "regions": ["fra1"],
+  "functions": {
+    "src/app/api/match-round/route.ts": { "maxDuration": 60 },
+    "src/app/api/finalize-matches/route.ts": { "maxDuration": 300 },
+    "src/app/api/send-results/route.ts": { "maxDuration": 300 }
+  }
+}

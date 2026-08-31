@@ -13,3 +13,4 @@ test-results/
 docs/*.xlsx
 docs/*.pptx
 docs/*.docx
+.vercel
