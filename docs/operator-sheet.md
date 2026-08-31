@@ -4,9 +4,9 @@ One page. Keep it open on the operator laptop. Friday 4 September 2026, Kraków.
 
 | Who | Screen | URL |
 | --- | --- | --- |
-| Audience | Mobile form | the QR target |
-| Projector | Live room | `/screen` |
-| Operator | Match control | `/admin` |
+| Audience | Mobile form | `https://bootcamp-matching-tool.vercel.app/` — the QR target |
+| Projector | Live room | `https://bootcamp-matching-tool.vercel.app/screen` |
+| Operator | Match control | `https://bootcamp-matching-tool.vercel.app/admin` |
 
 The projector laptop shows **only** `/screen`. Never open `/admin` on the beamer.
 
@@ -64,6 +64,12 @@ Before the day itself, use **Test mail → Send one test** to check a Gmail addr
 - Round latency with 10 arrivals against a 75-person room: 12–24 s, mean ~18 s.
 - Rounds never overlap; the second caller gets `round_in_flight` and returns immediately.
 - Seed answers still produce Sasja → Yhore at 92% as the top match.
+
+## Measured on production (Vercel, Frankfurt)
+
+- Warm-up round trip: 350 ms.
+- Matching round: 6.9 s server-side.
+- Form submission: p50 705 ms, p95 1.7 s.
 
 ## Do not
 
