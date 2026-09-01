@@ -39,9 +39,9 @@ The projector laptop shows **only** `/screen`. Never open `/admin` on the beamer
 
 ## During the break
 
-1. **Finalize matches.** Takes up to a few minutes; it fills gaps for early arrivals, gives everyone exactly one match where one honestly exists, and looks up three nearby people for everyone left over. Safe to run twice — the result is identical.
-2. Check the reported line: `Finalized: N matched, M unresolved (K with suggestions)`. A number of unresolved people is expected, not a bug — usually answers that were too short to match on.
-3. **Send result emails.** Matched people get their match; unresolved people get an honest no-match mail explaining why, with up to three people closest to their topic. Already-sent people are skipped, so a second press never double-sends. Mail goes out from `bootcamp@resend.joda-ai.nl`.
+1. **Send result emails.** This now finalizes first automatically — it fills gaps for early arrivals, gives everyone exactly one match where one honestly exists, looks up three nearby people for everyone left over, then sends. Matched people get their match; unresolved people get an honest no-match mail explaining why, with up to three people closest to their topic. Already-sent people are skipped, so a second press never double-sends. Mail goes out from `bootcamp@resend.joda-ai.nl`.
+2. Watch the status line move from `Finalized: N matched, M unresolved (K with suggestions)` to `Email: … sent, … failed, … no-match`. A number of unresolved people is expected, not a bug — usually answers that were too short to match on.
+3. Want to check the numbers before anything is emailed? Press **Finalize matches** on its own first — safe to run twice, the result is identical, and it does not send anything.
 
 Before the day itself, use **Test mail** to check a Gmail address and a Microsoft 365 address. **Send one test** exercises the match template, **No-match test** exercises the no-match template. Both send exactly one message and touch nothing in the database.
 
@@ -54,7 +54,7 @@ Before the day itself, use **Test mail** to check a Gmail address and a Microsof
 | Screen frozen or blank | Reload `/screen`. It rebuilds from the database in about a second. Nothing is lost. |
 | Small dot bottom-right turned red | Realtime lost connection. The screen keeps showing what it has and reconnects itself. Do nothing. |
 | No network at the venue | Open `/screen?fallback=1`. Fully local scripted demo, no server needed. Works with the network cable pulled. |
-| You want a rehearsed run instead of the audience | **▶ Start seed demo** — seed answers arrive one by one, then a matching round fires automatically after 9 seconds. **Before the segment only; it deletes every match.** |
+| You want a rehearsed run instead of the audience | **▶ Start demo** — seed answers arrive one by one, then matching rounds switch on automatically after 9 seconds and keep running every 7s, same as the live segment. **Before the segment only; it deletes every match.** |
 | Status says `Round failed safely` | Ignore it. The next round retries. A single failed round is invisible on screen. |
 | Status says `Incorrect password` | The toggle switched itself off. Retype the password and switch it back on. |
 | Nothing is ever revealed | Lower **Reveal floor** on `/admin` (default 70) and press **Apply**. |
@@ -78,6 +78,6 @@ Before the day itself, use **Test mail** to check a Gmail address and a Microsof
 ## Do not
 
 - Do not open `/admin` on the projector.
-- Do not press **▶ Start seed demo** during the segment. It wipes every match and resets everyone to `new`. It is a rehearsal button.
+- Do not press **▶ Start demo** during the segment. It wipes every match and resets everyone to `new`, then switches matching rounds on. It is a rehearsal button.
 - Do not press **Delete live submissions** after the segment. It permanently removes the audience's answers.
 - Do not run the load test against production on the day itself.

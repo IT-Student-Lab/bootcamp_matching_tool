@@ -112,19 +112,11 @@ export function AdminPanel() {
     } catch { setStatus("Operation connection failed"); return false; }
   }
 
-  async function startSeedDemo() {
+  async function startDemo() {
     setActive(false);
     if (!await runAdminDataAction("start_seed_demo")) return;
-    window.setTimeout(async () => {
-      setStatus("Matching seed responses");
-      try {
-        const response = await fetch("/api/match-round", { method: "POST", headers: { "x-admin-password": password } });
-        const result = await response.json() as RoundResponse;
-        setLastResult(result);
-        setCompletedCalls((count) => count + 1);
-        setStatus(describeResult(result));
-      } catch { setStatus("Seed matching failed safely"); }
-    }, 9_000);
+    // Seed nodes take ~9s to finish arriving on /screen; matching rounds then run continuously, same as the live segment.
+    window.setTimeout(() => setActive(true), 9_000);
   }
 
   async function warmUp() {
@@ -150,18 +142,24 @@ export function AdminPanel() {
   }
 
   async function runM5Action(endpoint: "finalize-matches" | "send-results") {
-    if (!password) return;
+    if (!password) return false;
     setActive(false);
     setStatus(endpoint === "finalize-matches" ? "Finalizing all matches" : "Sending result emails");
     try {
       const response = await fetch(`/api/${endpoint}`, { method: "POST", headers: { "x-admin-password": password } });
       const result = await response.json() as { ok: boolean; matched?: number; unresolved?: number; nearMissesFound?: number; sent?: number; failed?: number; unresolvedRecipients?: number };
-      if (response.status === 401) { setStatus("Incorrect password"); return; }
-      if (!result.ok) { setStatus(endpoint === "finalize-matches" ? "Finalize failed safely" : "Email send failed safely"); return; }
+      if (response.status === 401) { setStatus("Incorrect password"); return false; }
+      if (!result.ok) { setStatus(endpoint === "finalize-matches" ? "Finalize failed safely" : "Email send failed safely"); return false; }
       setStatus(endpoint === "finalize-matches"
         ? `Finalized: ${result.matched ?? 0} matched, ${result.unresolved ?? 0} unresolved (${result.nearMissesFound ?? 0} with suggestions)`
         : `Email: ${result.sent ?? 0} sent, ${result.failed ?? 0} failed, ${result.unresolvedRecipients ?? 0} no-match`);
-    } catch { setStatus("Operation connection failed"); }
+      return true;
+    } catch { setStatus("Operation connection failed"); return false; }
+  }
+
+  async function finalizeAndSendResults() {
+    if (!await runM5Action("finalize-matches")) return;
+    await runM5Action("send-results");
   }
 
   const rankedMatches = [...matches].sort((left, right) => Number(right.a_source === "live" || right.b_source === "live") - Number(left.a_source === "live" || left.b_source === "live") || right.score - left.score);
@@ -218,7 +216,7 @@ export function AdminPanel() {
       </div>
 
       <div className={styles.demoActions}>
-        <button className={styles.seedDemo} disabled={!password} onClick={() => void startSeedDemo()}>▶ Start seed demo</button>
+        <button className={styles.seedDemo} disabled={!password} onClick={() => void startDemo()}>▶ Start demo</button>
         <button disabled={!password} onClick={() => void warmUp()}>Warm up</button>
         <button disabled={!password} onClick={() => { if (window.confirm("Remove every found match and reset active participants to new?")) void runAdminDataAction("reset_matches"); }}>Delete all matches</button>
         <button className={styles.danger} disabled={!password} onClick={() => { if (window.confirm("Permanently delete every live submission? Seed responses stay intact.")) void runAdminDataAction("delete_live"); }}>Delete live submissions</button>
@@ -252,7 +250,7 @@ export function AdminPanel() {
 
       <div className={styles.finalActions}>
         <button disabled={!password} onClick={() => void runM5Action("finalize-matches")}>Finalize matches</button>
-        <button disabled={!password} onClick={() => { if (window.confirm("Send personal result emails now? Already sent assignments will be skipped.")) void runM5Action("send-results"); }}>Send result emails</button>
+        <button disabled={!password} onClick={() => { if (window.confirm("Finalize matches and send personal result emails now? Already sent assignments will be skipped.")) void finalizeAndSendResults(); }}>Send result emails</button>
       </div>
     </section>
   );
