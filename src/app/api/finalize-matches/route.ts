@@ -4,7 +4,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getAdminEnv, getAnthropicEnv } from "@/lib/env";
 import { buildFinalAssignments, type CandidatePair } from "@/lib/matching/assignment";
-import { requestRoundMatches } from "@/lib/matching/anthropic";
+import { requestNearMisses, requestRoundMatches } from "@/lib/matching/anthropic";
+import type { NearMiss } from "@/lib/matching/near-misses";
 import type { MatchParticipant } from "@/lib/matching/round";
 import { createServiceClient } from "@/lib/supabase/server";
 
@@ -72,16 +73,41 @@ export async function POST(request: NextRequest) {
     const assignments = buildFinalAssignments(participants.map((participant) => participant.id), candidateResult.data as CandidatePair[]);
     const participantById = new Map(participants.map((participant) => [participant.id, participant]));
 
+    // Everyone with an address gets an email, so the unresolved need somebody to walk up to as well.
+    const unmatchedRecipients = assignments
+      .filter((assignment) => assignment.status === "unresolved")
+      .map((assignment) => participantById.get(assignment.participantId))
+      .filter((participant): participant is (MatchParticipant & { email: string | null }) => Boolean(participant?.email));
+    const nearMissesById = new Map<string, NearMiss[]>();
+    let skippedNearMissChunks = 0;
+
+    for (let offset = 0; offset < unmatchedRecipients.length; offset += CHUNK_SIZE) {
+      const chunk = unmatchedRecipients.slice(offset, offset + CHUNK_SIZE);
+      try {
+        const suggested = await requestNearMisses(anthropicEnv.ANTHROPIC_API_KEY, chunk, usefulRoster, anthropicEnv.ANTHROPIC_WORKSPACE_ID);
+        for (const suggestion of suggested.suggestions) nearMissesById.set(suggestion.participant_id, suggestion.people);
+      } catch (error) {
+        skippedNearMissChunks += 1;
+        console.error("finalize_near_miss_chunk_skipped", error instanceof Error ? error.message : "unknown");
+      }
+    }
+
     const clearAssignments = await supabase.from("final_assignments").delete().not("participant_id", "is", null);
     if (clearAssignments.error) throw clearAssignments.error;
     if (assignments.length > 0) {
-      const insertAssignments = await supabase.from("final_assignments").insert(assignments.map((assignment) => ({
-        participant_id: assignment.participantId,
-        match_id: assignment.matchId,
-        status: assignment.status,
-        email_status: participantById.get(assignment.participantId)?.email ? "pending" : "not_applicable",
-        updated_at: new Date().toISOString(),
-      })));
+      const insertAssignments = await supabase.from("final_assignments").insert(assignments.map((assignment) => {
+        const participant = participantById.get(assignment.participantId);
+        const unresolved = assignment.status === "unresolved";
+        return {
+          participant_id: assignment.participantId,
+          match_id: assignment.matchId,
+          status: assignment.status,
+          unresolved_reason: !unresolved ? null : participant && useful(participant) ? "no_strong_match" : "thin_answers",
+          near_misses: unresolved ? nearMissesById.get(assignment.participantId) ?? [] : [],
+          email_status: participant?.email ? "pending" : "not_applicable",
+          updated_at: new Date().toISOString(),
+        };
+      }));
       if (insertAssignments.error) throw insertAssignments.error;
     }
 
@@ -94,6 +120,8 @@ export async function POST(request: NextRequest) {
       skippedChunks,
       matched: assignments.filter((assignment) => assignment.status === "matched").length,
       unresolved: assignments.filter((assignment) => assignment.status === "unresolved").length,
+      nearMissesFound: nearMissesById.size,
+      skippedNearMissChunks,
       latencyMs: Date.now() - startedAt,
     });
   } catch (error) {

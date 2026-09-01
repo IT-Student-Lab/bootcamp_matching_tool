@@ -14,7 +14,11 @@ const FROM_ADDRESS = "Construsoft Bootcamp <bootcamp@resend.joda-ai.nl>";
 
 type Participant = { id: string; first_name: string; country: string | null; email: string | null; good_at: string; wants_to_learn: string };
 type CandidateMatch = { id: string; participant_a: string; participant_b: string; reason: string };
-type Assignment = { participant_id: string; match_id: string };
+type NearMiss = { id: string; reason: string };
+type Assignment = { participant_id: string; match_id: string | null; status: "matched" | "unresolved"; unresolved_reason: "thin_answers" | "no_strong_match" | null; near_misses: NearMiss[] };
+type Delivery =
+  | { kind: "matched"; recipient: Participant; counterpart: Participant; reason: string }
+  | { kind: "unresolved"; recipient: Participant; unresolvedReason: "thin_answers" | "no_strong_match" | null; people: { person: Participant; reason: string }[] };
 
 function authorized(provided: string | null) {
   const expected = getAdminEnv().ADMIN_PASSWORD;
@@ -28,10 +32,25 @@ function escapeHtml(value: string) {
   return value.replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]!);
 }
 
+function shell(inner: string) {
+  return `<!doctype html><html><body style="margin:0;background:#f9f4ee;color:#141210;font-family:Arial,sans-serif"><div style="max-width:600px;margin:0 auto;padding:40px 24px"><p style="font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:#6e6a64">Construsoft Bootcamp · Live Matchmaker</p>${inner}</div></body></html>`;
+}
+
 function emailHtml(recipient: Participant, match: Participant, reason: string) {
   const name = escapeHtml(match.first_name);
   const country = escapeHtml(match.country ?? "Construsoft colleague");
-  return `<!doctype html><html><body style="margin:0;background:#f9f4ee;color:#141210;font-family:Arial,sans-serif"><div style="max-width:600px;margin:0 auto;padding:40px 24px"><p style="font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:#6e6a64">Construsoft Bootcamp · Live Matchmaker</p><h1 style="font-size:30px;line-height:1.15;margin:20px 0 8px">Hi ${escapeHtml(recipient.first_name)}, meet ${name}.</h1><p style="color:#6e6a64;margin:0 0 28px">${country}</p><div style="background:#141210;color:#f9f4ee;border-radius:8px;padding:24px"><p style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#c4f084;margin:0 0 6px">Good at</p><p style="font-size:17px;line-height:1.45;margin:0 0 22px">${escapeHtml(match.good_at)}</p><p style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#c4f084;margin:0 0 6px">Would like to learn</p><p style="font-size:17px;line-height:1.45;margin:0">${escapeHtml(match.wants_to_learn)}</p></div><p style="font-size:16px;font-style:italic;line-height:1.5;margin:24px 0">“${escapeHtml(reason)}”</p><p style="color:#6e6a64;font-size:14px;line-height:1.5">Find each other during the break and start the conversation.</p></div></body></html>`;
+  return shell(`<h1 style="font-size:30px;line-height:1.15;margin:20px 0 8px">Hi ${escapeHtml(recipient.first_name)}, meet ${name}.</h1><p style="color:#6e6a64;margin:0 0 28px">${country}</p><div style="background:#141210;color:#f9f4ee;border-radius:8px;padding:24px"><p style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#c4f084;margin:0 0 6px">Good at</p><p style="font-size:17px;line-height:1.45;margin:0 0 22px">${escapeHtml(match.good_at)}</p><p style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#c4f084;margin:0 0 6px">Would like to learn</p><p style="font-size:17px;line-height:1.45;margin:0">${escapeHtml(match.wants_to_learn)}</p></div><p style="font-size:16px;font-style:italic;line-height:1.5;margin:24px 0">“${escapeHtml(reason)}”</p><p style="color:#6e6a64;font-size:14px;line-height:1.5">Find each other during the break and start the conversation.</p>`);
+}
+
+// Sent to everyone the matcher could not honestly pair, so it explains itself instead of going quiet.
+function unresolvedHtml(delivery: Extract<Delivery, { kind: "unresolved" }>) {
+  const explanation = delivery.unresolvedReason === "thin_answers"
+    ? "Your two answers were only a few words long, so there was not enough in them to match on. That is the input, not you — garbage in, garbage out, exactly as we said on stage."
+    : "We only send a match when one person can concretely help the other. This time nobody in the room was a confident fit for what you wrote, and a weak match is worse than an honest none.";
+  const people = delivery.people.length === 0
+    ? `<p style="color:#6e6a64;font-size:14px;line-height:1.5">Ask the person next to you what they are good at. That is the whole trick — it just needed an introduction.</p>`
+    : `<p style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#6e6a64;margin:0 0 12px">Closest in the room</p>${delivery.people.map((entry) => `<div style="background:#141210;color:#f9f4ee;border-radius:8px;padding:20px 24px;margin:0 0 12px"><p style="font-size:19px;margin:0 0 2px">${escapeHtml(entry.person.first_name)}</p><p style="color:#a5a09a;font-size:13px;margin:0 0 14px">${escapeHtml(entry.person.country ?? "Construsoft colleague")}</p><p style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#c4f084;margin:0 0 6px">Good at</p><p style="font-size:16px;line-height:1.45;margin:0 0 12px">${escapeHtml(entry.person.good_at)}</p><p style="font-size:14px;font-style:italic;line-height:1.5;margin:0;color:#d7d2ca">“${escapeHtml(entry.reason)}”</p></div>`).join("")}<p style="color:#6e6a64;font-size:14px;line-height:1.5">These are not matches — they are the people standing nearest to your topic. Walk up to one of them during the break anyway.</p>`;
+  return shell(`<h1 style="font-size:30px;line-height:1.15;margin:20px 0 8px">Hi ${escapeHtml(delivery.recipient.first_name)}, no confident match this time.</h1><p style="color:#6e6a64;line-height:1.5;margin:0 0 28px">${explanation}</p>${people}`);
 }
 
 const SAMPLE_RECIPIENT: Participant = { id: "sample-a", first_name: "Yhore", country: "Spain", email: null, good_at: "Coordinating suppliers under a tight schedule", wants_to_learn: "Analyzing sales data and identifying business trends in Power BI" };
@@ -51,6 +70,28 @@ async function buildPreview(supabase: ReturnType<typeof createServiceClient>) {
   return { recipient, counterpart, reason: best.reason };
 }
 
+async function buildUnresolvedPreview(supabase: ReturnType<typeof createServiceClient>): Promise<Extract<Delivery, { kind: "unresolved" }>> {
+  const assignmentResult = await supabase.from("final_assignments").select("participant_id,unresolved_reason,near_misses").eq("status", "unresolved").limit(20);
+  const withPeople = (assignmentResult.data as Pick<Assignment, "participant_id" | "unresolved_reason" | "near_misses">[] | null ?? [])
+    .find((assignment) => (assignment.near_misses ?? []).length > 0);
+  if (!withPeople) {
+    return { kind: "unresolved", recipient: SAMPLE_RECIPIENT, unresolvedReason: "thin_answers", people: [{ person: SAMPLE_COUNTERPART, reason: SAMPLE_REASON }] };
+  }
+  const ids = [withPeople.participant_id, ...withPeople.near_misses.map((person) => person.id)];
+  const peopleResult = await supabase.from("participants").select("id,first_name,country,email,good_at,wants_to_learn").in("id", ids);
+  const byId = new Map((peopleResult.data as Participant[] | null ?? []).map((person) => [person.id, person]));
+  const recipient = byId.get(withPeople.participant_id);
+  if (!recipient) {
+    return { kind: "unresolved", recipient: SAMPLE_RECIPIENT, unresolvedReason: "thin_answers", people: [{ person: SAMPLE_COUNTERPART, reason: SAMPLE_REASON }] };
+  }
+  return {
+    kind: "unresolved",
+    recipient,
+    unresolvedReason: withPeople.unresolved_reason,
+    people: withPeople.near_misses.flatMap((entry) => { const person = byId.get(entry.id); return person ? [{ person, reason: entry.reason }] : []; }),
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     if (!authorized(request.headers.get("x-admin-password"))) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
@@ -59,37 +100,40 @@ export async function POST(request: NextRequest) {
     const requestBody = await request.json().catch(() => ({}));
     const testEmail = z.email().safeParse((requestBody as { testEmail?: unknown }).testEmail);
     if (testEmail.success) {
-      const preview = await buildPreview(supabase);
-      const sent = await new Resend(getEmailEnv().RESEND_API_KEY).emails.send({
-        from: FROM_ADDRESS,
-        to: testEmail.data,
-        subject: `Test - your Bootcamp match: ${preview.counterpart.first_name}`,
-        html: emailHtml(preview.recipient, preview.counterpart, preview.reason),
-      });
+      const unresolvedVariant = (requestBody as { variant?: unknown }).variant === "unresolved";
+      const message = unresolvedVariant
+        ? await buildUnresolvedPreview(supabase).then((preview) => ({ subject: "Test - your Bootcamp match", html: unresolvedHtml(preview) }))
+        : await buildPreview(supabase).then((preview) => ({ subject: `Test - your Bootcamp match: ${preview.counterpart.first_name}`, html: emailHtml(preview.recipient, preview.counterpart, preview.reason) }));
+      const sent = await new Resend(getEmailEnv().RESEND_API_KEY).emails.send({ from: FROM_ADDRESS, to: testEmail.data, ...message });
       if (sent.error) return NextResponse.json({ ok: false, error: sent.error.name, message: sent.error.message });
-      return NextResponse.json({ ok: true, test: true, from: FROM_ADDRESS, messageId: sent.data?.id });
+      return NextResponse.json({ ok: true, test: true, variant: unresolvedVariant ? "unresolved" : "matched", from: FROM_ADDRESS, messageId: sent.data?.id });
     }
 
-    const assignmentResult = await supabase.from("final_assignments").select("participant_id,match_id").eq("status", "matched").eq("email_status", "pending").not("match_id", "is", null);
+    const assignmentResult = await supabase.from("final_assignments").select("participant_id,match_id,status,unresolved_reason,near_misses").eq("email_status", "pending");
     if (assignmentResult.error) throw assignmentResult.error;
     const assignments = assignmentResult.data as Assignment[];
     if (assignments.length === 0) return NextResponse.json({ ok: true, sent: 0, failed: 0, skipped: true });
 
     const [participantResult, matchResult] = await Promise.all([
       supabase.from("participants").select("id,first_name,country,email,good_at,wants_to_learn").is("superseded_by", null),
-      supabase.from("matches").select("id,participant_a,participant_b,reason").in("id", [...new Set(assignments.map((assignment) => assignment.match_id))]),
+      supabase.from("matches").select("id,participant_a,participant_b,reason").in("id", [...new Set(assignments.flatMap((assignment) => assignment.match_id ? [assignment.match_id] : []))]),
     ]);
     if (participantResult.error) throw participantResult.error;
     if (matchResult.error) throw matchResult.error;
     const participants = new Map((participantResult.data as Participant[]).map((participant) => [participant.id, participant]));
     const matches = new Map((matchResult.data as CandidateMatch[]).map((match) => [match.id, match]));
-    const ready = assignments.flatMap((assignment) => {
+    const ready = assignments.flatMap<Delivery>((assignment) => {
       const recipient = participants.get(assignment.participant_id);
-      const match = matches.get(assignment.match_id);
-      if (!recipient?.email || !match) return [];
+      if (!recipient?.email) return [];
+      if (assignment.status === "unresolved") {
+        const people = (assignment.near_misses ?? []).flatMap((entry) => { const person = participants.get(entry.id); return person ? [{ person, reason: entry.reason }] : []; });
+        return [{ kind: "unresolved", recipient, unresolvedReason: assignment.unresolved_reason, people }];
+      }
+      const match = assignment.match_id ? matches.get(assignment.match_id) : undefined;
+      if (!match) return [];
       const counterpartId = match.participant_a === recipient.id ? match.participant_b : match.participant_a;
       const counterpart = participants.get(counterpartId);
-      return counterpart ? [{ assignment, recipient, counterpart, reason: match.reason }] : [];
+      return counterpart ? [{ kind: "matched", recipient, counterpart, reason: match.reason }] : [];
     });
     const resend = new Resend(getEmailEnv().RESEND_API_KEY);
     let sent = 0;
@@ -103,8 +147,8 @@ export async function POST(request: NextRequest) {
       const response = await resend.batch.send(chunk.map((item) => ({
         from: FROM_ADDRESS,
         to: item.recipient.email!,
-        subject: `Your Bootcamp match: ${item.counterpart.first_name}`,
-        html: emailHtml(item.recipient, item.counterpart, item.reason),
+        subject: item.kind === "matched" ? `Your Bootcamp match: ${item.counterpart.first_name}` : "Your Bootcamp match",
+        html: item.kind === "matched" ? emailHtml(item.recipient, item.counterpart, item.reason) : unresolvedHtml(item),
       })), { batchValidation: "permissive", idempotencyKey });
 
       if (response.error) {
@@ -126,7 +170,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, sent, failed, skippedInvalid: assignments.length - ready.length });
+    return NextResponse.json({
+      ok: true,
+      sent,
+      failed,
+      unresolvedRecipients: ready.filter((item) => item.kind === "unresolved").length,
+      skippedInvalid: assignments.length - ready.length,
+    });
   } catch (error) {
     console.error("send_results_failed", error instanceof Error ? error.message : "unknown");
     return NextResponse.json({ ok: false, error: "send_failed" }, { status: 200 });

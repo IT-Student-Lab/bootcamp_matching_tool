@@ -6,7 +6,7 @@ import { getBrowserClient } from "@/lib/supabase/browser";
 
 import styles from "./screen.module.css";
 
-type PublicNode = { participant_id: string; created_at: string; country: string | null; source: "seed" | "live" };
+type PublicNode = { participant_id: string; created_at: string; country: string | null; source: "seed" | "live"; name: string };
 type PublicMatch = {
   match_id: string; created_at: string; participant_a: string; participant_b: string; score: number; reason: string;
   a_name: string; a_country: string | null; a_good_at: string; a_source: "seed" | "live";
@@ -17,11 +17,16 @@ type Point = { x: number; y: number; radius: number; born: number };
 
 const FORCE_STORAGE_KEY = "bootcamp-force-version";
 const SEED_DEMO_STORAGE_KEY = "bootcamp-seed-demo-version";
+// Matches never render all at once, even when a backlog already exists on load — they trickle in on this cadence.
+const LINE_REVEAL_INTERVAL_MS = 600;
 
-const FALLBACK_NODES: PublicNode[] = ["Poland", "Chile", "Netherlands", "Hungary", "Spain", "Portugal", "Greece", "Netherlands"].map((country, index) => ({
+const FALLBACK_NODE_COUNTRIES = ["Poland", "Chile", "Netherlands", "Hungary", "Spain", "Portugal", "Greece", "Netherlands"];
+const FALLBACK_NODE_NAMES = ["Dominik", "Raquel", "Sasja", "Lilla", "Yhore", "Igor", "George", "Steven"];
+const FALLBACK_NODES: PublicNode[] = FALLBACK_NODE_COUNTRIES.map((country, index) => ({
   participant_id: `fallback-${index}`,
   created_at: new Date(Date.UTC(2026, 8, 4, 8, 0, index)).toISOString(),
   country,
+  name: FALLBACK_NODE_NAMES[index],
   source: index > 2 ? "live" : "seed",
 }));
 const FALLBACK_MATCHES: PublicMatch[] = [
@@ -63,7 +68,7 @@ function placeNodes(nodes: PublicNode[], width: number, height: number) {
   return positions;
 }
 
-function NetworkCanvas({ nodes, matches, topMatches, onSelect }: { nodes: PublicNode[]; matches: PublicMatch[]; topMatches: PublicMatch[]; onSelect: (match: PublicMatch) => void }) {
+function NetworkCanvas({ nodes, matches, topMatches, onSelect, onHoverNode }: { nodes: PublicNode[]; matches: PublicMatch[]; topMatches: PublicMatch[]; onSelect: (match: PublicMatch) => void; onHoverNode: (node: PublicNode | null, x: number, y: number) => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<number>(0);
 
@@ -179,12 +184,25 @@ function NetworkCanvas({ nodes, matches, topMatches, onSelect }: { nodes: Public
       const hit = [...hitBoxes].reverse().find((box) => x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height);
       if (hit) onSelect(hit.match);
     };
+    const hoverNode = (event: MouseEvent) => {
+      const rect = canvas!.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const hit = nodes.find((node) => {
+        const point = positions.get(node.participant_id);
+        return point ? Math.hypot(point.x - x, point.y - y) <= 14 : false;
+      });
+      onHoverNode(hit ?? null, event.clientX, event.clientY);
+    };
+    const clearHover = () => onHoverNode(null, 0, 0);
     canvas.addEventListener("click", selectMatch);
+    canvas.addEventListener("mousemove", hoverNode);
+    canvas.addEventListener("mouseleave", clearHover);
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
     frameRef.current = window.requestAnimationFrame(draw);
-    return () => { canvas.removeEventListener("click", selectMatch); observer.disconnect(); window.cancelAnimationFrame(frameRef.current); };
-  }, [matches, nodes, onSelect, topMatches]);
+    return () => { canvas.removeEventListener("click", selectMatch); canvas.removeEventListener("mousemove", hoverNode); canvas.removeEventListener("mouseleave", clearHover); observer.disconnect(); window.cancelAnimationFrame(frameRef.current); };
+  }, [matches, nodes, onSelect, onHoverNode, topMatches]);
 
   return <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" />;
 }
@@ -216,8 +234,12 @@ export function LiveScreen() {
   const [cursorHidden, setCursorHidden] = useState(false);
   const [forcedFallback, setForcedFallback] = useState(false);
   const [seedVisibleCount, setSeedVisibleCount] = useState<number | null>(null);
+  const [revealedMatchIds, setRevealedMatchIds] = useState<string[]>([]);
+  const [hoveredNode, setHoveredNode] = useState<{ node: PublicNode; x: number; y: number } | null>(null);
   const lastForceVersionRef = useRef(0);
   const lastSeedDemoVersionRef = useRef(0);
+  const knownMatchIdsRef = useRef<Set<string>>(new Set());
+  const pendingMatchQueueRef = useRef<string[]>([]);
 
   useEffect(() => {
     setForcedFallback(new URLSearchParams(window.location.search).get("fallback") === "1");
@@ -235,7 +257,31 @@ export function LiveScreen() {
 
   useEffect(() => {
     setFeature(null);
+    // A mode switch restarts the reveal so lines never jump straight to their final state.
+    knownMatchIdsRef.current = new Set();
+    pendingMatchQueueRef.current = [];
+    setRevealedMatchIds([]);
   }, [fallbackMode]);
+
+  useEffect(() => {
+    const source = fallbackMode ? FALLBACK_MATCHES : matches;
+    const fresh = source
+      .filter((match) => !knownMatchIdsRef.current.has(match.match_id))
+      .sort((left, right) => left.created_at.localeCompare(right.created_at));
+    for (const match of fresh) {
+      knownMatchIdsRef.current.add(match.match_id);
+      pendingMatchQueueRef.current.push(match.match_id);
+    }
+  }, [matches, fallbackMode]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const next = pendingMatchQueueRef.current.shift();
+      if (!next) return;
+      setRevealedMatchIds((current) => (current.includes(next) ? current : [...current, next]));
+    }, LINE_REVEAL_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (forcedFallback) return;
@@ -267,7 +313,11 @@ export function LiveScreen() {
       const forced = matches.find((match) => match.match_id === control.forced_match_id);
       lastForceVersionRef.current = control.force_version;
       localStorage.setItem(FORCE_STORAGE_KEY, String(control.force_version));
-      if (forced) setFeature(forced);
+      if (forced) {
+        setFeature(forced);
+        // Its line should already be on screen when the card pops up.
+        setRevealedMatchIds((current) => (current.includes(forced.match_id) ? current : [...current, forced.match_id]));
+      }
       return;
     }
     if (!control.forced_match_id && control.force_version > lastSeedDemoVersionRef.current) {
@@ -275,6 +325,9 @@ export function LiveScreen() {
       localStorage.setItem(SEED_DEMO_STORAGE_KEY, String(control.force_version));
       setFeature(null);
       setSeedVisibleCount(0);
+      knownMatchIdsRef.current = new Set();
+      pendingMatchQueueRef.current = [];
+      setRevealedMatchIds([]);
     }
   }, [control, matches]);
 
@@ -293,19 +346,22 @@ export function LiveScreen() {
     return () => { window.clearTimeout(timer); window.removeEventListener("mousemove", showCursor); window.removeEventListener("keydown", fullscreen); };
   }, []);
 
-  const rankedMatches = displayMatches.filter((match) => match.score >= (displayControl?.score_floor ?? 70)).sort((left, right) => right.score - left.score || left.created_at.localeCompare(right.created_at));
+  const revealedIdSet = new Set(revealedMatchIds);
+  const visibleMatches = displayMatches.filter((match) => revealedIdSet.has(match.match_id));
+  const rankedMatches = visibleMatches.filter((match) => match.score >= (displayControl?.score_floor ?? 70)).sort((left, right) => right.score - left.score || left.created_at.localeCompare(right.created_at));
   const featureIndex = feature ? rankedMatches.findIndex((match) => match.match_id === feature.match_id) : -1;
 
   return <main className={`${styles.screen} ${cursorHidden ? styles.cursorHidden : ""}`}>
-    <NetworkCanvas nodes={displayNodes} matches={displayMatches} topMatches={rankedMatches.slice(0, 5)} onSelect={setFeature} />
+    <NetworkCanvas nodes={displayNodes} matches={visibleMatches} topMatches={rankedMatches.slice(0, 5)} onSelect={setFeature} onHoverNode={(node, x, y) => setHoveredNode(node ? { node, x, y } : null)} />
     <header className={styles.top}>
       <div><div className={styles.eyebrow}>Construsoft Bootcamp · Collective Intelligence</div><div className={styles.title}>reading the room, live</div></div>
-      <div className={styles.stats}><div><strong>{displayNodes.length}</strong><span>answers in</span></div><div><strong>{displayMatches.length}</strong><span>matches found</span></div></div>
+      <div className={styles.stats}><div><strong>{displayNodes.length}</strong><span>answers in</span></div><div><strong>{visibleMatches.length}</strong><span>matches found</span></div></div>
     </header>
-    <div className={styles.log}>{displayMatches.slice(-4).reverse().map((match) => <div key={match.match_id}>&gt; match found · {match.score}%</div>)}</div>
+    <div className={styles.log}>{visibleMatches.slice(-4).reverse().map((match) => <div key={match.match_id}>&gt; match found · {match.score}%</div>)}</div>
     <div className={styles.brand}>CONSTRUSOFT BOOTCAMP <span>×</span> JODA AI</div>
     <span className={fallbackMode || connected ? styles.connectionOnline : styles.connectionOffline} title={fallbackMode ? "Fallback mode" : connected ? "Realtime connected" : "Realtime reconnecting"} />
     <button className={styles.fullscreen} type="button" title="Enter fullscreen" aria-label="Enter fullscreen" onClick={() => void document.documentElement.requestFullscreen()}>⛶</button>
+    {hoveredNode ? <div className={styles.nodeTooltip} style={{ left: hoveredNode.x + 16, top: hoveredNode.y - 12 }}>{hoveredNode.node.name}</div> : null}
     {feature ? <MatchReveal match={feature} canPrevious={featureIndex > 0} canNext={featureIndex >= 0 && featureIndex < rankedMatches.length - 1} onPrevious={() => setFeature(rankedMatches[featureIndex - 1])} onNext={() => setFeature(rankedMatches[featureIndex + 1])} onClose={() => setFeature(null)} /> : null}
   </main>;
 }

@@ -22,8 +22,20 @@ const matchSchema = z.object({
   learner_id: z.string(),
   score: z.coerce.number().finite(),
   reason: z.string().trim().min(1),
+  teacher_evidence: z.string().trim().min(1),
+  learner_evidence: z.string().trim().min(1),
 });
 const responseSchema = z.object({ matches: z.array(z.unknown()).max(500) });
+
+function normalizeForGrounding(value: string) {
+  return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("en").replace(/\s+/g, " ").trim();
+}
+
+// The model must quote the person's own words back verbatim; this is what catches a reason
+// that actually describes a different pair (as seen in production: right ids, wrong story).
+function isGroundedIn(sourceField: string, quote: string) {
+  return normalizeForGrounding(sourceField).includes(normalizeForGrounding(quote));
+}
 
 function formatParticipant(participant: MatchParticipant) {
   return JSON.stringify({
@@ -62,9 +74,12 @@ Do not infer that general programming experience makes someone able to teach AI 
 Be honest and strict. If there is no concrete teaching connection, leave that person out. Returning fewer matches is better than filling the list.
 Return at most one object per new arrival: their single best match. Never return the same new arrival twice.
 Score 90-100 for an unusually direct or strongly transferable teaching fit, 80-89 for a clear practical fit, 70-79 for a useful but partial fit, and 60-69 only when the connection is still concrete and specific. Omit generic or speculative connections entirely, even if they could be described with a score of 60.
-Only return 60 or above. The reason must be one specific sentence in plain English of at most 15 words.
+Only return 60 or above.
+
+For every match, first copy "teacher_evidence": a short phrase (3-8 words) copied verbatim from THIS teacher_id's own good_at field above - the exact part that is relevant. Then copy "learner_evidence": a short phrase (3-8 words) copied verbatim from THIS learner_id's own wants_to_learn field above. Never copy a phrase from any other participant. If you cannot find a real verbatim phrase in their own fields, do not include the match.
+Then write "reason": one sentence, at most 30 words, that explicitly answers this question: why can the teacher teach the learner the specific thing the learner is looking for? Name both people by first name. State the concrete thing the teacher can do (from teacher_evidence), state the concrete thing the learner wants (from learner_evidence), and connect them with the causal link - e.g. "because [teacher]'s [skill] is exactly the [task] [learner] needs for [need]". Do not just describe both people side by side without connecting them, and do not use vague filler like "strong skills", "relevant experience" or "general knowledge" - name the actual thing.
 Return only JSON with this shape and no other text, and no commentary after it:
-{"matches":[{"teacher_id":"...","learner_id":"...","score":0,"reason":"..."}]}`;
+{"matches":[{"teacher_id":"...","learner_id":"...","score":0,"teacher_evidence":"...","learner_evidence":"...","reason":"..."}]}`;
 }
 
 function stripMarkdownFence(value: string) {
@@ -126,6 +141,8 @@ export function parseRoundMatches(raw: string, roster: MatchParticipant[], newAr
     const learner = participants.get(candidate.learner_id);
     if (!teacher || !learner || teacher.id === learner.id || teacher.person_key === learner.person_key) continue;
     if (!newArrivalIds.has(teacher.id) && !newArrivalIds.has(learner.id)) continue;
+    // Drops matches whose "reason" turns out to describe a different pair than the ids returned.
+    if (!isGroundedIn(teacher.good_at, candidate.teacher_evidence) || !isGroundedIn(learner.wants_to_learn, candidate.learner_evidence)) continue;
 
     const score = Math.min(100, Math.max(0, Math.round(candidate.score)));
     if (score < 60) continue;

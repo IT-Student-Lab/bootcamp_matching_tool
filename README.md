@@ -18,7 +18,8 @@ Database deployment and seed verification still require a local checkout and Sup
 1. Install dependencies with `npm install`.
 2. Copy `.env.example` to `.env.local` and set the required values.
 3. Apply `supabase/migrations/202608300001_initial_schema.sql` to the Supabase project.
-4. Run `npm run seed` to import `docs/Survey results Construsoft.xlsx`.
-5. Start the app with `npm run dev`.
+4. Apply `supabase/migrations/202608310001_near_misses.sql` to the same project.
+5. Run `npm run seed` to import `docs/Survey results Construsoft.xlsx`.
+6. Start the app with `npm run dev`.
 
 Never commit `.env*`, API keys, passwords or connection strings. See `AGENTS.md` and `docs/technical-plan.md` before making implementation decisions.

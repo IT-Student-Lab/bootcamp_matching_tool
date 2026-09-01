@@ -138,11 +138,11 @@ export function AdminPanel() {
     } catch { setStatus("Warm-up connection failed"); }
   }
 
-  async function sendTestEmail() {
+  async function sendTestEmail(variant: "matched" | "unresolved") {
     if (!password || !testEmail) return;
-    setStatus(`Sending test mail to ${testEmail}`);
+    setStatus(`Sending ${variant === "unresolved" ? "no-match " : ""}test mail to ${testEmail}`);
     try {
-      const response = await fetch("/api/send-results", { method: "POST", headers: { "content-type": "application/json", "x-admin-password": password }, body: JSON.stringify({ testEmail }) });
+      const response = await fetch("/api/send-results", { method: "POST", headers: { "content-type": "application/json", "x-admin-password": password }, body: JSON.stringify({ testEmail, variant }) });
       const result = await response.json() as { ok: boolean; messageId?: string; message?: string };
       if (response.status === 401) { setStatus("Incorrect password"); return; }
       setStatus(result.ok ? `Test mail accepted (${result.messageId ?? "no id"})` : `Test mail rejected: ${result.message ?? "unknown reason"}`);
@@ -155,10 +155,12 @@ export function AdminPanel() {
     setStatus(endpoint === "finalize-matches" ? "Finalizing all matches" : "Sending result emails");
     try {
       const response = await fetch(`/api/${endpoint}`, { method: "POST", headers: { "x-admin-password": password } });
-      const result = await response.json() as { ok: boolean; matched?: number; unresolved?: number; sent?: number; failed?: number };
+      const result = await response.json() as { ok: boolean; matched?: number; unresolved?: number; nearMissesFound?: number; sent?: number; failed?: number; unresolvedRecipients?: number };
       if (response.status === 401) { setStatus("Incorrect password"); return; }
       if (!result.ok) { setStatus(endpoint === "finalize-matches" ? "Finalize failed safely" : "Email send failed safely"); return; }
-      setStatus(endpoint === "finalize-matches" ? `Finalized: ${result.matched ?? 0} matched, ${result.unresolved ?? 0} unresolved` : `Email: ${result.sent ?? 0} sent, ${result.failed ?? 0} failed`);
+      setStatus(endpoint === "finalize-matches"
+        ? `Finalized: ${result.matched ?? 0} matched, ${result.unresolved ?? 0} unresolved (${result.nearMissesFound ?? 0} with suggestions)`
+        : `Email: ${result.sent ?? 0} sent, ${result.failed ?? 0} failed, ${result.unresolvedRecipients ?? 0} no-match`);
     } catch { setStatus("Operation connection failed"); }
   }
 
@@ -244,7 +246,8 @@ export function AdminPanel() {
       <div className={styles.testMailRow}>
         <label htmlFor="test-email">Test mail</label>
         <input id="test-email" type="email" placeholder="you@gmail.com" autoComplete="off" value={testEmail} onChange={(event) => setTestEmail(event.target.value)} />
-        <button disabled={!password || !testEmail.includes("@")} onClick={() => void sendTestEmail()}>Send one test</button>
+        <button disabled={!password || !testEmail.includes("@")} onClick={() => void sendTestEmail("matched")}>Send one test</button>
+        <button disabled={!password || !testEmail.includes("@")} onClick={() => void sendTestEmail("unresolved")}>No-match test</button>
       </div>
 
       <div className={styles.finalActions}>

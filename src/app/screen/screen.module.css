@@ -17,6 +17,7 @@
 .connectionOffline { background: #7a332d; }
 .fullscreen { background: transparent; border: 1px solid #343431; border-radius: 6px; color: #8d8d84; font-size: 20px; height: 38px; line-height: 1; opacity: 0; position: absolute; right: 22px; top: 104px; transition: opacity 150ms ease; width: 38px; z-index: 10; }
 .screen:hover .fullscreen, .fullscreen:focus-visible { opacity: 1; }
+.nodeTooltip { background: rgba(24,24,22,.94); border: 1px solid rgba(196,240,132,.65); border-radius: 4px; color: #eaf7d8; font-family: "Space Grotesk", sans-serif; font-size: 12px; font-weight: 600; padding: 3px 8px; pointer-events: none; position: absolute; white-space: nowrap; z-index: 6; }
 .featureCard { align-items: center; animation: revealIn 500ms ease both; background: radial-gradient(ellipse at center, rgba(18,18,18,.55) 0%, rgba(18,18,18,.92) 70%); display: flex; inset: 0; justify-content: center; position: absolute; z-index: 8; }
 .featureInner { align-items: center; animation: revealScale 500ms cubic-bezier(.2,.8,.2,1) both; display: grid; gap: clamp(24px, 3vw, 54px); grid-template-columns: minmax(220px, 1fr) minmax(180px, 0.75fr) minmax(220px, 1fr); max-width: min(1100px, 88vw); width: 100%; }
 .person { background: #181816; border: 1px solid #343431; border-radius: 8px; min-height: 190px; padding: clamp(20px, 2.2vw, 32px); }
