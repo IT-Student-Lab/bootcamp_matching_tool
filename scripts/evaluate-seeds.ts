@@ -24,13 +24,14 @@ async function main() {
     .order("created_at");
   if (result.error) throw result.error;
   const seeds = result.data as MatchParticipant[];
-  if (seeds.length !== 15) throw new Error(`Expected 15 active seeds, found ${seeds.length}. Evaluation aborted.`);
+  if (seeds.length < 15) throw new Error(`Only ${seeds.length} active seeds found. Run npm run seed first. Evaluation aborted.`);
 
   const evaluation = await requestRoundMatches(env.ANTHROPIC_API_KEY, seeds, seeds, env.ANTHROPIC_WORKSPACE_ID);
   const names = new Map(seeds.map((participant) => [participant.id, participant.first_name]));
   const matches = [...evaluation.matches].sort((left, right) => right.score - left.score);
 
   console.log(`Model: ${MATCHING_MODEL}`);
+  console.log(`Seeds: ${seeds.length}`);
   console.log(`Tokens: ${evaluation.inputTokens} input / ${evaluation.outputTokens} output`);
   console.log(`Matches: ${matches.length}`);
   for (const match of matches) {

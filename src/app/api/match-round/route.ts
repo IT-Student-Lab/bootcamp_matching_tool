@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getAdminEnv, getAnthropicEnv } from "@/lib/env";
 import { requestRoundMatches } from "@/lib/matching/anthropic";
+import { CURATED_MATCHES } from "@/lib/matching/curated";
 import { parseRoundMatches, type MatchParticipant } from "@/lib/matching/round";
 import { createServiceClient } from "@/lib/supabase/server";
 
@@ -12,11 +13,6 @@ const THIN_POOL_WAIT_SECONDS = 30;
 // Bounds round latency during a submission burst; the overflow is picked up by the next round.
 // Smaller rounds give the same throughput but land matches on screen more often.
 const MAX_ARRIVALS_PER_ROUND = 10;
-// The slide-25 proof point: scripted, not left to model variance, so Job always has this exact card to narrate.
-const GUARANTEE_TEACHER_NAME = "Sasja";
-const GUARANTEE_LEARNER_NAME = "Yhore";
-const GUARANTEE_SCORE = 92;
-const GUARANTEE_REASON = "Sasja's skill in analysis and statistics is exactly what Yhore needs to turn sales data into real trends.";
 
 function passwordsMatch(provided: string | null, expected: string) {
   if (!provided) return false;
@@ -78,16 +74,19 @@ export async function POST(request: NextRequest) {
     if (rosterResult.error) throw rosterResult.error;
     const roster = rosterResult.data as MatchParticipant[];
 
-    const guaranteeTeacher = roster.find((participant) => participant.first_name === GUARANTEE_TEACHER_NAME);
-    const guaranteeLearner = roster.find((participant) => participant.first_name === GUARANTEE_LEARNER_NAME);
-    if (guaranteeTeacher && guaranteeLearner && guaranteeTeacher.person_key !== guaranteeLearner.person_key) {
-      const guaranteeInsert = await supabase.from("matches").insert({
-        participant_a: guaranteeTeacher.id,
-        participant_b: guaranteeLearner.id,
-        score: GUARANTEE_SCORE,
-        reason: GUARANTEE_REASON,
+    // Inserted before the model call so the unique pair index keeps the model from overwriting the
+    // scripted direction, score or reason with its own version of the same pair.
+    for (const curated of CURATED_MATCHES) {
+      const teacher = roster.find((participant) => participant.person_key === curated.teacherKey);
+      const learner = roster.find((participant) => participant.person_key === curated.learnerKey);
+      if (!teacher || !learner || teacher.id === learner.id) continue;
+      const curatedInsert = await supabase.from("matches").insert({
+        participant_a: teacher.id,
+        participant_b: learner.id,
+        score: curated.score,
+        reason: curated.reason,
       });
-      if (guaranteeInsert.error && guaranteeInsert.error.code !== "23505") console.error("guarantee_match_insert_failed", guaranteeInsert.error.code);
+      if (curatedInsert.error && curatedInsert.error.code !== "23505") console.error("curated_match_insert_failed", curated.teacherName, curatedInsert.error.code);
     }
 
     const firstArrivalAgeSeconds = (Date.now() - new Date(newArrivals[0].created_at).getTime()) / 1000;

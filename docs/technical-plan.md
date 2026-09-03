@@ -33,13 +33,17 @@ If pre-filling is impossible, the fallbacks are: open the form at registration/c
 
 ## 0b. What the 15 real answers tell us (and what has to change because of it)
 
+> **Superseded in part by the 3 September export**, which has 40 rows of which **36 are usable** (three test submissions and one half-filled row are skipped by `scripts/seed.ts`). The findings below still hold; the counts are from the first 15. What changed at n=36: AI demand is 42% instead of 47%, one person now supplies AI, and coverage is much better — an evaluation run returned 26 matches over 36 people, with Sasja→Yhore at 92.
+
 The seed file has three columns: `invitee_name`, "what are you genuinely good at", "what would you like to learn". Five findings, in order of how much they change the build.
 
-### 1. "AI" is 47% of demand and 0% of supply
+### 1. "AI" is 42% of demand and almost 0% of supply
+
+> **Update, export of 3 September 2026 (36 usable answers):** 15 of 36 people name AI as what they want to learn — 42%, so the "almost half" line still holds. One person (Carl) now lists AI among his strengths, so "nobody is good at it" is no longer literally true; say "almost nobody" or drop the absolute. The numbers below are from the original 15 and are kept for the reasoning.
 
 Seven of fifteen people named AI as what they want to learn (David, Cristina, Emilia, Lilla, Dominik, Marcin, George). **Nobody listed AI as something they're good at.**
 
-- **Good news for the script:** the line *"half of the people who answered wrote down the same thing… It was AI"* is literally, verifiably true. 47%. That line is safe.
+- **Good news for the script:** the line *"half of the people who answered wrote down the same thing… It was AI"* is literally, verifiably true. 47% at n=15, 42% at n=36. That line is safe.
 - **Bad news for the matcher:** the single biggest demand in the room has no supply. A keyword matcher would return nothing for half the audience and the segment would die on stage.
 - **The fix is in the prompt, and it works.** Matching on the *underlying need* instead of the word finds real pairs. Two from the actual data:
   - **Lilla (HU)** wants *"AI and automation to reduce administrative work in sales and internal processes"* ↔ **Steven (NL)** is good at *"seeing relationships in processes and suggesting steps to optimize with automation or avoiding extra manual work."* Neither mentions the other's vocabulary. It's a strong match.
@@ -339,7 +343,7 @@ Behind basic auth or a long random path.
 - **Matching live** toggle — starts/stops the 7-second round clock (§4.3). This is the main control.
 - Live counters: responses, matches, featured, rounds run, last round latency.
 - **Finalize matches** and **Send result emails** buttons.
-- **Force-feature** a specific match on `/screen` right now (for Job to pick one live), and a button to feature the Sasja/Yhore guarantee card.
+- **Force-feature** a specific match on `/screen` right now (for Job to pick one live), plus a **Scripted reveals** list: the five prepared cards from `src/lib/matching/curated.ts`, in narration order, each with its own force button. They are inserted every round, so they exist whatever the model returns. MT members who asked not to be highlighted are filtered out of the labels and the reveal queue on both `/screen` and `/admin`.
 - **Fallback demo** button that flips `/screen` into the mockup's scripted client-side animation — the safety net if wifi, Supabase or the API has a bad five minutes mid-show. Nearly free to build (same code as the mockup). Wire it in on day one, not Thursday night.
 
 ---

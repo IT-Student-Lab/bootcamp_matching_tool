@@ -34,14 +34,14 @@
 .sectionHeading, .queueTitle, .floorRow, .queueItem { align-items: center; display: flex; justify-content: space-between; }
 .sectionHeading span, .queueTitle span { color: #6e6a64; display: block; font-size: 0.72rem; margin-top: 0.2rem; }
 .segmented { background: #e5dfd5; border-radius: 6px; display: flex; padding: 3px; }
-.segmented button, .floorRow button, .queueItem button, .guarantee { border: 0; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: 600; min-height: 2rem; }
+.segmented button, .floorRow button, .queueItem button { border: 0; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: 600; min-height: 2rem; }
 .segmented button { background: transparent; color: #6e6a64; padding: 0.35rem 0.75rem; }
 .segmented .selected { background: #fff; color: #141210; }
 .floorRow { gap: 0.6rem; justify-content: flex-start; margin-top: 1rem; }
 .floorRow label { font-size: 0.78rem; font-weight: 600; margin-right: auto; }
 .floorRow input { border: 1px solid #d6cfc4; border-radius: 4px; min-height: 2rem; padding: 0.3rem 0.4rem; width: 4.5rem; }
 .floorRow button, .queueItem button { background: #141210; color: #c4f084; padding: 0.35rem 0.65rem; }
-.guarantee { background: #c4f084; color: #141210; margin-top: 1rem; padding: 0.55rem 0.8rem; width: 100%; }
+.queueItem button.curatedFeature { background: #c4f084; color: #141210; }
 .screenControls button:disabled, .queue button:disabled { cursor: not-allowed; opacity: 0.45; }
 .queueTitle { margin-bottom: 0.65rem; }
 .queueItem { border-top: 1px solid #e5dfd5; min-height: 2.9rem; padding: 0.45rem 0; }

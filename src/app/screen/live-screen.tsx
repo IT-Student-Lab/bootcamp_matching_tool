@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { curatedOrder, mayBeHighlighted } from "@/lib/matching/curated";
 import { getBrowserClient } from "@/lib/supabase/browser";
 
 import styles from "./screen.module.css";
@@ -20,21 +21,33 @@ const SEED_DEMO_STORAGE_KEY = "bootcamp-seed-demo-version";
 // Matches never render all at once, even when a backlog already exists on load — they trickle in on this cadence.
 const LINE_REVEAL_INTERVAL_MS = 600;
 
-const FALLBACK_NODE_COUNTRIES = ["Poland", "Chile", "Netherlands", "Hungary", "Spain", "Portugal", "Greece", "Netherlands"];
-const FALLBACK_NODE_NAMES = ["Dominik", "Raquel", "Sasja", "Lilla", "Yhore", "Igor", "George", "Steven"];
-const FALLBACK_NODES: PublicNode[] = FALLBACK_NODE_COUNTRIES.map((country, index) => ({
-  participant_id: `fallback-${index}`,
-  created_at: new Date(Date.UTC(2026, 8, 4, 8, 0, index)).toISOString(),
-  country,
-  name: FALLBACK_NODE_NAMES[index],
-  source: index > 2 ? "live" : "seed",
-}));
+// Offline mode mirrors the scripted reveals in src/lib/matching/curated.ts. Only the nine people on
+// those cards are named; the rest of the room is anonymous filler, so nothing about anyone is invented.
+const FALLBACK_NAMES = ["Sasja", "Yhore", "Igor", "Dominik", "Camila", "Manuel", "Alejandro", "Ruben", "Jiří"];
+const FALLBACK_FILLER_NODES = 120;
+const FALLBACK_FILLER_MATCHES = 22;
+const fallbackTime = (offsetSeconds: number) => new Date(Date.UTC(2026, 8, 4, 8, 0, offsetSeconds)).toISOString();
+const FALLBACK_NODES: PublicNode[] = [
+  ...FALLBACK_NAMES.map((name, index) => ({ participant_id: `fallback-${index}`, created_at: fallbackTime(index), country: null, name, source: (index < 3 ? "seed" : "live") as "seed" | "live" })),
+  ...Array.from({ length: FALLBACK_FILLER_NODES }, (_, index) => ({ participant_id: `fallback-filler-${index}`, created_at: fallbackTime(FALLBACK_NAMES.length + index), country: null, name: "", source: (index % 4 === 0 ? "seed" : "live") as "seed" | "live" })),
+];
 const FALLBACK_MATCHES: PublicMatch[] = [
-  { match_id: "fallback-match-1", participant_a: "fallback-2", participant_b: "fallback-4", score: 92, a_name: "Sasja", a_country: "Netherlands", a_good_at: "Analysis, statistics and understanding what data really means", a_source: "seed", b_name: "Yhore", b_country: "Spain", b_wants_to_learn: "Analyzing sales data and identifying business trends in Power BI", b_source: "live", reason: "Strong analytical methods transfer directly to finding meaningful trends in sales data." },
-  { match_id: "fallback-match-2", participant_a: "fallback-7", participant_b: "fallback-3", score: 90, a_name: "Steven", a_country: "Netherlands", a_good_at: "Optimizing processes with automation and avoiding manual work", a_source: "live", b_name: "Lilla", b_country: "Hungary", b_wants_to_learn: "Using AI and automation to reduce administrative work", b_source: "live", reason: "Process automation directly addresses the administrative work Lilla wants to reduce." },
-  { match_id: "fallback-match-3", participant_a: "fallback-5", participant_b: "fallback-0", score: 88, a_name: "Igor", a_country: "Portugal", a_good_at: "Finding what should be explained in workflows and training material", a_source: "live", b_name: "Dominik", b_country: "Poland", b_wants_to_learn: "Creating e-learning content with AI agents", b_source: "live", reason: "Spotting missing explanations is exactly what useful e-learning content needs." },
-  { match_id: "fallback-match-4", participant_a: "fallback-6", participant_b: "fallback-1", score: 80, a_name: "George", a_country: "Greece", a_good_at: "Listening and making people feel understood", a_source: "live", b_name: "Raquel", b_country: "Chile", b_wants_to_learn: "Clear communication skills", b_source: "live", reason: "Careful listening is a practical foundation for clearer communication." },
-].map((match, index) => ({ ...match, created_at: new Date(Date.UTC(2026, 8, 4, 8, 1, index)).toISOString(), shown_at: null })) as PublicMatch[];
+  { match_id: "fallback-match-1", participant_a: "fallback-0", participant_b: "fallback-1", score: 92, a_name: "Sasja", a_good_at: "Analysis, statistics and understanding what data really means", a_source: "seed", b_name: "Yhore", b_wants_to_learn: "Analyzing sales data and identifying business trends in Power BI", b_source: "live", reason: "Sasja's skill in analysis and statistics is exactly what Yhore needs to turn sales data into real trends." },
+  { match_id: "fallback-match-2", participant_a: "fallback-2", participant_b: "fallback-3", score: 93, a_name: "Igor", a_good_at: "Finding what should be explained in workflows and training material", a_source: "seed", b_name: "Dominik", b_wants_to_learn: "Building AI agents that create content for e-learning", b_source: "live", reason: "Igor spots what is missing from training material, which is exactly what Dominik needs before an AI agent can write real e-learning content." },
+  { match_id: "fallback-match-3", participant_a: "fallback-1", participant_b: "fallback-4", score: 87, a_name: "Yhore", a_good_at: "Gestión comercial, seguimiento de OPP, ofertas y contratos en el CRM", a_source: "live", b_name: "Camila", b_wants_to_learn: "Better workflows that generate better results in terms of MQL", b_source: "live", reason: "Yhore's grip on opportunity follow-up, quotes and a clean CRM is exactly what Camila needs to turn better workflows into qualified leads." },
+  { match_id: "fallback-match-4", participant_a: "fallback-5", participant_b: "fallback-6", score: 95, a_name: "Manuel", a_good_at: "Creating tools that optimize customer work processes with Grasshopper", a_source: "live", b_name: "Alejandro", b_wants_to_learn: "Grasshopper for computational modeling and algorithmic design", b_source: "live", reason: "Manuel builds Grasshopper tools that optimise customer workflows, which is exactly the computational modelling Alejandro wants to learn." },
+  { match_id: "fallback-match-5", participant_a: "fallback-7", participant_b: "fallback-8", score: 83, a_name: "Ruben", a_good_at: "Social ease and humour when presenting or in a hard conversation", a_source: "live", b_name: "Jiří", b_wants_to_learn: "Dealing with public speaking and presentations as an introvert", b_source: "live", reason: "Ruben uses humour and social ease to carry a presentation, which is exactly what Jiří needs to face the public speaking he avoids." },
+  // Unnamed connections so the offline room looks as busy as the real one; never labelled or opened.
+  ...Array.from({ length: FALLBACK_FILLER_MATCHES }, (_, index) => ({
+    match_id: `fallback-filler-match-${index}`,
+    participant_a: `fallback-filler-${(index * 7) % FALLBACK_FILLER_NODES}`,
+    participant_b: `fallback-filler-${(index * 13 + 5) % FALLBACK_FILLER_NODES}`,
+    score: 72 + ((index * 5) % 18),
+    a_name: "", a_good_at: "", a_source: "live" as const,
+    b_name: "", b_wants_to_learn: "", b_source: "live" as const,
+    reason: "",
+  })),
+].map((match, index) => ({ ...match, a_country: null, b_country: null, created_at: fallbackTime(index), shown_at: null })) as PublicMatch[];
 
 function hashFraction(value: string, salt: number) {
   let hash = 2166136261 ^ salt;
@@ -80,6 +93,7 @@ function NetworkCanvas({ nodes, matches, topMatches, onSelect, onHoverNode }: { 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let positions = new Map<string, Point>();
     let hitBoxes: { match: PublicMatch; x: number; y: number; width: number; height: number }[] = [];
+    let hoveredMatchId: string | null = null;
     let width = 0;
     let height = 0;
     let frameErrorLogged = false;
@@ -151,15 +165,16 @@ function NetworkCanvas({ nodes, matches, topMatches, onSelect, onHoverNode }: { 
           while (hitBoxes.some((box) => Math.abs(box.x - x) < cardWidth && Math.abs(box.y - y) < cardHeight + 4)) {
             y += cardHeight + 6;
           }
-          context!.fillStyle = "rgba(24,24,22,.94)";
-          context!.strokeStyle = "rgba(196,240,132,.65)";
-          context!.lineWidth = 1;
+          const hovered = hoveredMatchId === match.match_id;
+          context!.fillStyle = hovered ? "rgba(196,240,132,.96)" : "rgba(24,24,22,.94)";
+          context!.strokeStyle = hovered ? "#c4f084" : "rgba(196,240,132,.65)";
+          context!.lineWidth = hovered ? 1.8 : 1;
           context!.beginPath(); context!.roundRect(x, y, cardWidth, cardHeight, 5); context!.fill(); context!.stroke();
-          context!.fillStyle = "#eaf7d8";
+          context!.fillStyle = hovered ? "#141210" : "#eaf7d8";
           context!.font = '600 10px "Inter", sans-serif';
           const names = `${match.a_name} · ${match.b_name}`;
           context!.fillText(names.length > 20 ? `${names.slice(0, 19)}…` : names, x + 9, y + 19);
-          context!.fillStyle = "#c4f084";
+          context!.fillStyle = hovered ? "#141210" : "#c4f084";
           context!.font = '700 10px "JetBrains Mono", monospace';
           context!.textAlign = "right";
           context!.fillText(`${match.score}%`, x + cardWidth - 8, y + 19);
@@ -188,13 +203,15 @@ function NetworkCanvas({ nodes, matches, topMatches, onSelect, onHoverNode }: { 
       const rect = canvas!.getBoundingClientRect();
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
+      const label = [...hitBoxes].reverse().find((box) => x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height);
+      hoveredMatchId = label?.match.match_id ?? null;
       const hit = nodes.find((node) => {
         const point = positions.get(node.participant_id);
         return point ? Math.hypot(point.x - x, point.y - y) <= 14 : false;
       });
       onHoverNode(hit ?? null, event.clientX, event.clientY);
     };
-    const clearHover = () => onHoverNode(null, 0, 0);
+    const clearHover = () => { hoveredMatchId = null; onHoverNode(null, 0, 0); };
     canvas.addEventListener("click", selectMatch);
     canvas.addEventListener("mousemove", hoverNode);
     canvas.addEventListener("mouseleave", clearHover);
@@ -347,21 +364,25 @@ export function LiveScreen() {
   }, []);
 
   const revealedIdSet = new Set(revealedMatchIds);
-  const visibleMatches = displayMatches.filter((match) => revealedIdSet.has(match.match_id));
-  const rankedMatches = visibleMatches.filter((match) => match.score >= (displayControl?.score_floor ?? 70)).sort((left, right) => right.score - left.score || left.created_at.localeCompare(right.created_at));
+  const scoreFloor = displayControl?.score_floor ?? 70;
+  // Every match at or above the floor gets a line; only the scripted five get a label you can open.
+  const linkedMatches = displayMatches.filter((match) => revealedIdSet.has(match.match_id) && match.score >= scoreFloor);
+  const rankedMatches = linkedMatches
+    .filter((match) => curatedOrder(match.a_name, match.b_name) >= 0 && mayBeHighlighted(match.a_name, match.b_name))
+    .sort((left, right) => curatedOrder(left.a_name, left.b_name) - curatedOrder(right.a_name, right.b_name));
   const featureIndex = feature ? rankedMatches.findIndex((match) => match.match_id === feature.match_id) : -1;
 
   return <main className={`${styles.screen} ${cursorHidden ? styles.cursorHidden : ""}`}>
-    <NetworkCanvas nodes={displayNodes} matches={visibleMatches} topMatches={rankedMatches.slice(0, 5)} onSelect={setFeature} onHoverNode={(node, x, y) => setHoveredNode(node ? { node, x, y } : null)} />
+    <NetworkCanvas nodes={displayNodes} matches={linkedMatches} topMatches={rankedMatches} onSelect={setFeature} onHoverNode={(node, x, y) => setHoveredNode(node ? { node, x, y } : null)} />
     <header className={styles.top}>
       <div><div className={styles.eyebrow}>Construsoft Bootcamp · Collective Intelligence</div><div className={styles.title}>reading the room, live</div></div>
-      <div className={styles.stats}><div><strong>{displayNodes.length}</strong><span>answers in</span></div><div><strong>{visibleMatches.length}</strong><span>matches found</span></div></div>
+      <div className={styles.stats}><div><strong>{displayNodes.length}</strong><span>answers in</span></div><div><strong>{linkedMatches.length}</strong><span>matches found</span></div></div>
     </header>
-    <div className={styles.log}>{visibleMatches.slice(-4).reverse().map((match) => <div key={match.match_id}>&gt; match found · {match.score}%</div>)}</div>
+    <div className={styles.log}>{linkedMatches.slice(-4).reverse().map((match) => <div key={match.match_id}>&gt; match found · {match.score}%</div>)}</div>
     <div className={styles.brand}>CONSTRUSOFT BOOTCAMP <span>×</span> JODA AI</div>
     <span className={fallbackMode || connected ? styles.connectionOnline : styles.connectionOffline} title={fallbackMode ? "Fallback mode" : connected ? "Realtime connected" : "Realtime reconnecting"} />
     <button className={styles.fullscreen} type="button" title="Enter fullscreen" aria-label="Enter fullscreen" onClick={() => void document.documentElement.requestFullscreen()}>⛶</button>
-    {hoveredNode ? <div className={styles.nodeTooltip} style={{ left: hoveredNode.x + 16, top: hoveredNode.y - 12 }}>{hoveredNode.node.name}</div> : null}
+    {hoveredNode && hoveredNode.node.name ? <div className={styles.nodeTooltip} style={{ left: hoveredNode.x + 16, top: hoveredNode.y - 12 }}>{hoveredNode.node.name}</div> : null}
     {feature ? <MatchReveal match={feature} canPrevious={featureIndex > 0} canNext={featureIndex >= 0 && featureIndex < rankedMatches.length - 1} onPrevious={() => setFeature(rankedMatches[featureIndex - 1])} onNext={() => setFeature(rankedMatches[featureIndex + 1])} onClose={() => setFeature(null)} /> : null}
   </main>;
 }

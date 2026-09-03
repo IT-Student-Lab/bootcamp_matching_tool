@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { CURATED_MATCHES, mayBeHighlighted } from "@/lib/matching/curated";
 import { getBrowserClient } from "@/lib/supabase/browser";
 
 import styles from "./admin.module.css";
@@ -162,8 +163,8 @@ export function AdminPanel() {
     await runM5Action("send-results");
   }
 
-  const rankedMatches = [...matches].sort((left, right) => Number(right.a_source === "live" || right.b_source === "live") - Number(left.a_source === "live" || left.b_source === "live") || right.score - left.score);
-  const guaranteeMatch = matches.find((match) => match.a_name === "Sasja" && match.b_name === "Yhore");
+  const rankedMatches = [...matches].filter((match) => mayBeHighlighted(match.a_name, match.b_name)).sort((left, right) => Number(right.a_source === "live" || right.b_source === "live") - Number(left.a_source === "live" || left.b_source === "live") || right.score - left.score);
+  const curatedQueue = CURATED_MATCHES.map((curated) => ({ curated, match: matches.find((match) => match.a_name === curated.teacherName && match.b_name === curated.learnerName) }));
 
   useEffect(() => {
     if (!active) return;
@@ -233,7 +234,11 @@ export function AdminPanel() {
       <div className={styles.screenControls}>
         <div className={styles.sectionHeading}><div><strong>Projector</strong><span>{control.mode === "fallback" ? "Local fallback active" : "Realtime data active"}</span></div><div className={styles.segmented}><button className={control.mode === "live" ? styles.selected : ""} disabled={!password} onClick={() => void updateShowControl({ action: "set_mode", mode: "live" }, "Live screen active")}>Live</button><button className={control.mode === "fallback" ? styles.selected : ""} disabled={!password} onClick={() => void updateShowControl({ action: "set_mode", mode: "fallback" }, "Fallback screen active")}>Fallback</button></div></div>
         <div className={styles.floorRow}><label htmlFor="score-floor">Reveal floor</label><input id="score-floor" type="number" min="0" max="100" value={floorInput} onChange={(event) => setFloorInput(Number(event.target.value))} /><button disabled={!password || floorInput < 0 || floorInput > 100} onClick={() => void updateShowControl({ action: "set_floor", scoreFloor: floorInput }, `Reveal floor set to ${floorInput}`)}>Apply</button></div>
-        {guaranteeMatch ? <button className={styles.guarantee} disabled={!password} onClick={() => void updateShowControl({ action: "force_match", matchId: guaranteeMatch.match_id }, "Sasja / Yhore queued now")}>Feature Sasja / Yhore now</button> : null}
+      </div>
+
+      <div className={styles.queue}>
+        <div className={styles.queueTitle}><strong>Scripted reveals</strong><span>In narration order</span></div>
+        {curatedQueue.map(({ curated, match }, index) => <div className={styles.queueItem} key={`${curated.teacherKey}-${curated.learnerKey}`}><div><strong>{index + 1}. {curated.teacherName} → {curated.learnerName}</strong><span>{match ? "Ready" : "Not created yet"}</span></div><b>{curated.score}%</b><button className={styles.curatedFeature} title={`Feature ${curated.teacherName} and ${curated.learnerName}`} aria-label={`Feature ${curated.teacherName} and ${curated.learnerName}`} disabled={!password || !match} onClick={() => match && void updateShowControl({ action: "force_match", matchId: match.match_id }, `${curated.teacherName} / ${curated.learnerName} queued now`)}>▶</button></div>)}
       </div>
 
       <div className={styles.queue}>

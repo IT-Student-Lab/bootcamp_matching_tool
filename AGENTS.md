@@ -16,7 +16,7 @@ A live audience tool for a keynote at the **Construsoft Bootcamp in Kraków on F
 
 1. **`docs/technical-plan.md`** — the full specification. Architecture, data model, matching engine design with the arithmetic behind it, prompt text, Resend/DNS setup, build timeline. This is the source of truth for *what* to build and *why the decisions are what they are*.
 2. **`docs/mockup.html`** — the visual design, as a working single file. Open it in a browser and click "▶ Simulate live demo". **This is the design source of truth.** It is a mockup with scripted fake data, not production code, but the visual language in it is signed off: colors, type, canvas behaviour, the featured-match card, the mobile form. Port it; don't reinterpret it.
-3. **`docs/seed_participants.csv`** — 15 real survey answers to seed the database with.
+3. **`docs/survey_results_*.xlsx`** (gitignored, local only) — the real survey answers to seed the database with. The 3 September export has 40 rows, 36 usable; `npm run seed` imports the newest export and skips test rows.
 
 Section references below (§4.2, §0b, …) point into `docs/technical-plan.md`.
 
@@ -52,7 +52,7 @@ Next.js (App Router) on Vercel · Supabase (Postgres + Realtime) · Anthropic AP
 /api/match-round       POST — one matching round (§4.4)
 /api/finalize-matches  POST — closing sweep + global assignment (§4.5)
 /api/send-results      POST — batch send result emails (§6)
-/scripts/seed.ts       import docs/seed_participants.csv
+/scripts/seed.ts       import the newest docs/survey_results_*.xlsx
 /scripts/loadtest.ts   fire N synthetic submissions at /api/submit
 ```
 

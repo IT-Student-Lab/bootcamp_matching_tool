@@ -18,7 +18,7 @@ The projector laptop shows **only** `/screen`. Never open `/admin` on the beamer
 ## Before the talk
 
 1. Open `/admin`, type the admin password once. The browser remembers it on this device, so you only do this on a laptop you trust. Every button stays disabled until it is filled in.
-2. Press **Delete live submissions**, then **Delete all matches**. This clears rehearsal and load-test data. The 15 seed answers stay.
+2. Press **Delete live submissions**, then **Delete all matches**. This clears rehearsal and load-test data. The 36 seed answers stay.
 3. Open `/screen` on the projector laptop, press **F** for fullscreen. The cursor hides itself after three seconds.
 4. Two minutes before the segment, press **Warm up**. It should report `Warm (…ms)`. This costs nothing and avoids a cold start on the first real round.
 5. Leave **Matching rounds** off until the QR code is on screen.
@@ -30,10 +30,20 @@ The projector laptop shows **only** `/screen`. Never open `/admin` on the beamer
 1. QR goes up → switch **Matching rounds** on. Rounds now fire every 7 seconds.
 2. Watch the **Status** and **Last latency** lines. A round takes roughly 10–25 seconds, so most 7-second ticks report `Previous round still running`. That is normal and correct — it is the lock doing its job.
 3. `… queued` in the status means submissions are waiting for the next round. Also normal during a burst; nobody is lost. Ten arrivals go into each round, so with a full room the lines keep appearing for several minutes after the last phone submits.
-4. At Job's cue in the proof block, press **Feature Sasja / Yhore now**.
-5. For the live reveals: click a match label on `/screen`, or press **▶** next to an entry in *Top of reveal queue* on `/admin`. Walk the ranking with **← Previous / Next →**; **Close** or a click on the background returns to the network.
+4. At Job's cue in the proof block, work down **Scripted reveals** on `/admin`: five prepared matches, numbered in narration order, one **▶** each. They are inserted by the first matching round, so all five read `Ready` before the segment starts. If one reads `Not created yet`, run a round.
+
+   | # | Card | Why it is in the set |
+   |---|---|---|
+   | 1 | Sasja → Yhore (92) | The slide-25 proof point. |
+   | 2 | Igor → Dominik (93) | AI demand met by someone who never wrote "AI". |
+   | 3 | Yhore → Camila (87) | Yhore now supplies the knowledge, and her answer is in Spanish. |
+   | 4 | Manuel → Alejandro (95) | Highest score; Grasshopper, concrete and tool-level. |
+   | 5 | Ruben → Jiří (83) | The human one: humour and presence against stage fright. |
+
+5. On `/screen` those same five are the only labelled cards; hovering one lights it up and clicking it opens the reveal. Everything else in the room is a dot plus a line — every match at or above the **Reveal floor** (default 70) draws a line, without a name. To feature one of those anyway, press **▶** next to an entry in *Top of reveal queue* on `/admin`. Walk the five with **← Previous / Next →**; **Close** or a click on the background returns to the network.
 6. Job reads each card aloud in a fixed order — score, then names, then the reason line. Give him a beat after each click.
-7. When the window closes → switch **Matching rounds** off, before Daan walks forward for the landing.
+7. MT members who asked not to be highlighted never get a name label on `/screen` and never appear in the reveal queue. They still show as a node, still get lines and still get their email. The block is on first name, so a namesake in the audience is suppressed too — no visible effect either way.
+8. When the window closes → switch **Matching rounds** off, before Daan walks forward for the landing.
 
 ---
 
